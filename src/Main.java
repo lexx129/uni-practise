@@ -3,6 +3,7 @@ import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 public class Main {
 
@@ -24,19 +25,25 @@ public class Main {
 
     private static FileInfo addInstance(File file) throws NoSuchAlgorithmException, IOException {
 //        File curr_file = new File(path);
+        if (file.isDirectory()){
+            String curr_hash =
+        }
+        else
         String curr_hash = getHash(file);
         return new FileInfo(file.length(), curr_hash);
+
     }
 
-    private static void scan(String rootDir) throws IOException, NoSuchAlgorithmException {
-        HashMap<String, FileInfo> map = new HashMap<>();
+    private static void scan(File rootDir) throws IOException, NoSuchAlgorithmException {
+        HashMap<String, FileInfo> map = new LinkedHashMap<>();
         FileInfo fi;
         FileOutputStream fos = new FileOutputStream("snapshot.out");
         ObjectOutputStream oos = new ObjectOutputStream(fos);
 //        String rootDir = "d:\\";
-        File root = new File(rootDir);
-        File[] files = root.listFiles();
+//        File root = new File(rootDir);
+        File[] files = rootDir.listFiles();
         int i = 0;
+        assert files != null;
         while (i < files.length) {
             File firstElement = files[i];
             File[] subFiles = null;
@@ -46,6 +53,7 @@ public class Main {
                 i++;
                 continue;
             }
+            assert subFiles != null;
             File[] temp = new File[files.length + subFiles.length];
             for (int j = 0; j <= i; j++)
                 temp[j] = files[j];
@@ -57,7 +65,7 @@ public class Main {
             i++;
         }
         for (File file : files) {
-//            System.out.println(file.getPath());
+            System.out.println(file.getPath());
             if (!file.isDirectory()) {
                 fi = addInstance(file);
                 map.put(file.getAbsolutePath(), fi);
@@ -68,12 +76,21 @@ public class Main {
         oos.close();
     }
 
-    private static boolean check
+    private static void check (String rootDir) throws IOException, ClassNotFoundException {
+        FileInputStream fis = new FileInputStream("snapshot.out");
+        ObjectInputStream ois = new ObjectInputStream(fis);
+        LinkedHashMap<String, FileInfo> ref = (LinkedHashMap<String, FileInfo>) ois.readObject();
+        String root = ref.entrySet().iterator().next().getKey();
+        System.out.println(root);
 
-    public static void main(String[] args) throws IOException, NoSuchAlgorithmException {
-        // тут надо запросить область поиска
-        File file = new File("C:\\Drivers");
-        scan("C:\\Drivers");
+    }
+
+
+    public static void main(String[] args) throws IOException, NoSuchAlgorithmException, ClassNotFoundException {
+        // enter a place for scan here
+        File file = new File("C:\\PortableTex");
+        scan(file);
+        check("C:\\PortableTex");
 
 
     }
