@@ -48,9 +48,13 @@ public class Main {
     }
 
     private static void snapMake(File rootDir) throws IOException, NoSuchAlgorithmException {
+//        LinkedHashMap<String, FileInfo> map = new LinkedHashMap<>();
+//        TreeMap<String, FileInfo> map = new TreeMap<>((o1, o2) -> {
+//            return o1.toLowerCase().compareTo(o2.toLowerCase());
+//        });
         TreeMap<String, FileInfo> map = new TreeMap<>();
         FileInfo fi;
-        FileOutputStream fos = new FileOutputStream("snapshot.out");
+        FileOutputStream fos = new FileOutputStream("snapshot12.out");
         ObjectOutputStream oos = new ObjectOutputStream(fos);
 //        String rootDir = "d:\\";
 //        File root = new File(rootDir);
@@ -81,17 +85,59 @@ public class Main {
         }
         long scanned = 0;
         for (File file : files) {
-            System.out.println(file.getPath());
+//            System.out.println(file.getPath());
             scanned++;
 //            System.out.println("Files scanned: " + scanned);
             fi = addInstance(file);
-            map.put(file.getAbsolutePath(), fi);
+            map.put(file.getAbsolutePath().toLowerCase(), fi);
         }
 //        int a = 0 + 16;
         System.out.println("Total: " + scanned);
+//        map.
         oos.writeObject(map);
         oos.flush();
         oos.close();
+    }
+
+    private static TreeMap<String, FileInfo> secondarySnapMake(File rootDir) throws IOException, NoSuchAlgorithmException {
+        TreeMap<String, FileInfo> map = new TreeMap<>();
+        FileInfo fi;
+        //        String rootDir = "d:\\";
+//        File root = new File(rootDir);
+        File[] files = rootDir.listFiles();
+//        files[0] = rootDir;
+        int i = 0;
+        assert files != null;
+        while (i < files.length) {
+            File firstElement = files[i];
+            File[] subFiles = null;
+            if (firstElement.isDirectory()) {
+                subFiles = firstElement.listFiles();
+            } else {
+                i++;
+                continue;
+            }
+            assert subFiles != null;
+            File[] temp = new File[files.length + subFiles.length];
+            for (int j = 0; j <= i; j++)
+                temp[j] = files[j];
+            for (int k = 0; k < subFiles.length; k++)
+                temp[i + 1 + k] = subFiles[k];
+            for (int m = i + 1; m < files.length; m++)
+                temp[m + subFiles.length] = files[m];
+            files = temp;
+            i++;
+        }
+        long scanned = 0;
+        for (File file : files) {
+//            System.out.println(file.getPath());
+            scanned++;
+//            System.out.println("Files scanned: " + scanned);
+            fi = addInstance(file);
+            map.put(file.getAbsolutePath().toLowerCase(), fi);
+        }
+        System.out.println("Total files in scanplace: " + scanned);
+        return map;
     }
 
     private static boolean isInner(String root, String target) {
@@ -126,8 +172,8 @@ public class Main {
         return 0;
     }
 
-    private static void snapCheck(String checkPath) throws IOException, ClassNotFoundException {
-        FileInputStream fis = new FileInputStream("snapshot.out");
+    private static void snapCheck(String checkPath) throws IOException, ClassNotFoundException, NoSuchAlgorithmException {
+        FileInputStream fis = new FileInputStream("snapshot12.out");
         ObjectInputStream ois = new ObjectInputStream(fis);
         TreeMap<String, FileInfo> ref = (TreeMap<String, FileInfo>) ois.readObject();
         String preRoot = ref.entrySet().iterator().next().getKey();
@@ -136,26 +182,29 @@ public class Main {
 //        boolean isInner = checkPath.contains(rootFolder);
 //        boolean isOuter = rootFolder.contains(checkPath);
         System.out.println("Ref size should be: " + ref.size());
+        SortedMap<String, FileInfo> sub;
         if (isInner(rootFolder, checkPath)) {
             System.out.println("**Path for checking is inner!");
             System.out.println(ref.lastKey());
-            SortedMap<String, FileInfo> sub = ref.subMap(checkPath, ref.lastKey());
+            sub = ref.subMap(checkPath, ref.lastKey());
 //            Iterator iterator = sub.entrySet().iterator();
             String lower_grade = "";
             for (Map.Entry<String, FileInfo> entry : sub.entrySet()) {
-                String prev = lower_grade;
+//                String prev = lower_grade;
                 lower_grade = entry.getKey();
 //                String curr_hash = entry.getValue().getHash();
                 if (!lower_grade.contains(checkPath)) {
-                    lower_grade = prev;
+//                    lower_grade = prev;
                     break;
                 }
             }
             System.out.println(lower_grade);
             sub = ref.subMap(checkPath, lower_grade);
+            sub.remove(sub.firstKey());
 //            System.out.println(ref.lastKey());
 //            for (int i = ref.keySet().; i < ; i++) {
-
+            TreeMap scanplace = secondarySnapMake(new File(checkPath));
+            System.out.println("lol");
         }
 //        System.out.println(b);
 //        System.out.println("-----\r\n" + ololo);
