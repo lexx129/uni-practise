@@ -65,7 +65,7 @@ public class Main {
         assert files != null;
         while (i < files.length) {
             File firstElement = files[i];
-            File[] subFiles = null;
+            File[] subFiles;
             if (firstElement.isDirectory()) {
                 subFiles = firstElement.listFiles();
             } else {
@@ -74,12 +74,10 @@ public class Main {
             }
             assert subFiles != null;
             File[] temp = new File[files.length + subFiles.length];
-            for (int j = 0; j <= i; j++)
-                temp[j] = files[j];
+            System.arraycopy(files, 0, temp, 0, i + 1);
             for (int k = 0; k < subFiles.length; k++)
                 temp[i + 1 + k] = subFiles[k];
-            for (int m = i + 1; m < files.length; m++)
-                temp[m + subFiles.length] = files[m];
+            System.arraycopy(files, i + 1, temp, i + 1 + subFiles.length, files.length - (i + 1));
             files = temp;
             i++;
         }
@@ -92,7 +90,7 @@ public class Main {
             map.put(file.getAbsolutePath().toLowerCase(), fi);
         }
 //        int a = 0 + 16;
-        System.out.println("Total: " + scanned);
+        System.out.println("Total: " + scanned + "\n Snapshot creating completed!");
 //        map.
         oos.writeObject(map);
         oos.flush();
@@ -105,12 +103,13 @@ public class Main {
         //        String rootDir = "d:\\";
 //        File root = new File(rootDir);
         File[] files = rootDir.listFiles();
+
 //        files[0] = rootDir;
         int i = 0;
         assert files != null;
         while (i < files.length) {
             File firstElement = files[i];
-            File[] subFiles = null;
+            File[] subFiles;
             if (firstElement.isDirectory()) {
                 subFiles = firstElement.listFiles();
             } else {
@@ -119,12 +118,10 @@ public class Main {
             }
             assert subFiles != null;
             File[] temp = new File[files.length + subFiles.length];
-            for (int j = 0; j <= i; j++)
-                temp[j] = files[j];
+            System.arraycopy(files, 0, temp, 0, i + 1);
             for (int k = 0; k < subFiles.length; k++)
                 temp[i + 1 + k] = subFiles[k];
-            for (int m = i + 1; m < files.length; m++)
-                temp[m + subFiles.length] = files[m];
+            System.arraycopy(files, i + 1, temp, i + 1 + subFiles.length, files.length - (i + 1));
             files = temp;
             i++;
         }
@@ -136,7 +133,7 @@ public class Main {
             fi = addInstance(file);
             map.put(file.getAbsolutePath().toLowerCase(), fi);
         }
-        System.out.println("Total files in scanplace: " + scanned);
+        System.out.println("**Total files in scanplace: " + scanned);
         return map;
     }
 
@@ -165,11 +162,73 @@ public class Main {
             }
             if (name && hash && !size) {
 
-
             }
         }
-
         return 0;
+    }
+
+    private static void mapCompare(SortedMap<String, FileInfo> map1, TreeMap<String, FileInfo> map2) {
+        Iterator<Map.Entry<String, FileInfo>> iter1 = map1.entrySet().iterator();
+        while (iter1.hasNext()) {
+            boolean checked = false;
+            Map.Entry<String, FileInfo> entry1 = iter1.next();
+//            for (Map.Entry<String, FileInfo> entry1 : sub.entrySet()) {
+//               for (Map.Entry<String, FileInfo> entry2 : scanplace.entrySet()) {
+            Iterator<Map.Entry<String, FileInfo>> iter2 = map2.entrySet().iterator();
+            while (iter2.hasNext()) {
+                if (checked)
+                    break;
+                Map.Entry<String, FileInfo> entry2 = iter2.next();
+                if ((entry1.getKey().equals(entry2.getKey())) && (entry1.getValue().getHash().equals(entry2.getValue().getHash()))
+                        && (entry1.getValue().getSize() == (entry2.getValue().getSize()))) {
+                    System.out.println("File '" + entry1.getKey() + "' is OK");
+//                            sub.remove(entry1.getKey());
+//                            scanplace.remove(entry2.getKey());
+                    iter1.remove();
+                    iter2.remove();
+                    checked = true;
+                    break;
+                }
+                if ((entry1.getKey().equals(entry2.getKey())) && (!entry1.getValue().getHash().equals(entry2.getValue().getHash()))) {
+                    if (new File(entry1.getKey()).isDirectory())
+                        System.out.println("Folder '" + entry1.getKey() + "' is OK");
+                    else
+                        System.out.println("File '" + entry1.getKey() + "' was edited (hash differs)");
+//                            sub.remove(entry1.getKey());
+//                            scanplace.remove(entry2.getKey());
+                    iter1.remove();
+                    iter2.remove();
+                    checked = true;
+                    break;
+                }
+                if ((entry1.getKey().equals(entry2.getKey())) && !(entry1.getValue().getSize() == (entry2.getValue().getSize()))) {
+                    System.out.println("File '" + entry1.getKey() + "' was edited (size differs)");
+//                            sub.remove(entry1.getKey());
+//                            scanplace.remove(entry2.getKey());
+                    iter1.remove();
+                    iter2.remove();
+                    checked = true;
+                    break;
+                }
+                if ((!entry1.getKey().equals(entry2.getKey())) && (entry1.getValue().getHash().equals(entry2.getValue().getHash()))
+                        && (entry1.getValue().getSize() == (entry2.getValue().getSize()))) {
+                    System.out.println("File '" + entry1.getKey() + "' was renamed. Now it's named as '" + entry2.getKey() + "'");
+//                            sub.remove(entry1.getKey());
+//                            scanplace.remove(entry2.getKey());
+                    iter1.remove();
+                    iter2.remove();
+                    checked = true;
+                }
+            }
+        }
+        if (!map1.isEmpty()) {
+            for (Map.Entry<String, FileInfo> entry1 : map1.entrySet())
+                System.out.println("File '" + entry1.getKey() + "' was deleted");
+        }
+        if (!map2.isEmpty()) {
+            for (Map.Entry<String, FileInfo> entry1 : map2.entrySet())
+                System.out.println("File '" + entry1.getKey() + "' was created");
+        }
     }
 
     private static void snapCheck(String checkPath) throws IOException, ClassNotFoundException, NoSuchAlgorithmException {
@@ -184,33 +243,79 @@ public class Main {
         System.out.println("Ref size should be: " + ref.size());
         SortedMap<String, FileInfo> sub;
         if (isInner(rootFolder, checkPath)) {
-            System.out.println("**Path for checking is inner!");
-            System.out.println(ref.lastKey());
-            sub = ref.subMap(checkPath, ref.lastKey());
+//            System.out.println("**Path for checking is inner!");
+//            System.out.println(ref.lastKey());
+            if (rootFolder.equals(checkPath)) {
+                System.out.println("**Path for checking equals with snapshot root");
+                sub = ref;
+            } else {
+                System.out.println("**Path for checking is inner");
+                sub = ref.subMap(checkPath, ref.lastKey());
 //            Iterator iterator = sub.entrySet().iterator();
-            String lower_grade = "";
-            for (Map.Entry<String, FileInfo> entry : sub.entrySet()) {
+                String lower_grade = "";
+                for (Map.Entry<String, FileInfo> entry : sub.entrySet()) {
 //                String prev = lower_grade;
-                lower_grade = entry.getKey();
+                    lower_grade = entry.getKey();
 //                String curr_hash = entry.getValue().getHash();
-                if (!lower_grade.contains(checkPath)) {
+                    if (!lower_grade.contains(checkPath)) {
 //                    lower_grade = prev;
-                    break;
+                        break;
+                    }
                 }
+//            System.out.println(lower_grade);
+                sub = ref.subMap(checkPath, lower_grade);
+                sub.remove(sub.firstKey());
             }
-            System.out.println(lower_grade);
-            sub = ref.subMap(checkPath, lower_grade);
-            sub.remove(sub.firstKey());
 //            System.out.println(ref.lastKey());
 //            for (int i = ref.keySet().; i < ; i++) {
-            TreeMap scanplace = secondarySnapMake(new File(checkPath));
-            System.out.println("lol");
-        }
-//        System.out.println(b);
-//        System.out.println("-----\r\n" + ololo);
-//        boolean b = ref.containsKey("C:\\SwSetup\\sp45820");
-//        System.out.println(b);
+            TreeMap<String, FileInfo> scanplace = secondarySnapMake(new File(checkPath));
+//            Iterator<Map.Entry<String, FileInfo>> iter1 = sub.entrySet().iterator();
+            mapCompare(sub, scanplace);
+        } else {
+            System.out.println("**Path for checking is outer");
+            File[] files = new File(checkPath).listFiles();
 
+            int i = 0;
+            assert files != null;
+            while (i < files.length) {
+                File firstElement = files[i];
+                File[] subFiles;
+                if (firstElement.isDirectory()) {
+                    subFiles = firstElement.listFiles();
+                } else {
+                    i++;
+                    continue;
+                }
+                assert subFiles != null;
+                File[] temp = new File[files.length + subFiles.length];
+                System.arraycopy(files, 0, temp, 0, i + 1);
+                for (int k = 0; k < subFiles.length; k++)
+                    temp[i + 1 + k] = subFiles[k];
+                System.arraycopy(files, i + 1, temp, i + 1 + subFiles.length, files.length - (i + 1));
+                files = temp;
+                i++;
+            }
+            ArrayList<File> listFiles = new ArrayList<>(Arrays.asList(files));
+            TreeMap<String, FileInfo> scanplace;
+            File last_imp = null;
+            boolean found = false;
+            for (File file : listFiles) {
+                if (file.getAbsolutePath().toLowerCase().equals(rootFolder)) {
+                    scanplace = secondarySnapMake(file);
+                    last_imp = new File(scanplace.lastKey());
+                    mapCompare(ref, scanplace);
+                    found = true;
+                    break;
+                }
+                else System.out.println("File '" + file + "' was created (no info in snapshot)");
+            }
+            if (found) {
+                System.out.println("**Last file from found piece is " + last_imp);
+                for (int j = listFiles.indexOf(last_imp) + 1; j < listFiles.size(); j++) {
+                    System.out.println("File '" + listFiles.get(j) + "' was created (no info in snapshot)");
+                }
+            } else System.out.println("**Entered scanplace doesn't intersect with snapshot root folder");
+        }
     }
 
     public static void main(String[] args) throws IOException, NoSuchAlgorithmException, ClassNotFoundException {
